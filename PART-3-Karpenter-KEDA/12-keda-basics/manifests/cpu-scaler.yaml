@@ -1,0 +1,42 @@
+# 단순 nginx 워크로드 + KEDA CPU ScaledObject
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: cpu-demo
+spec:
+  replicas: 1
+  selector:
+    matchLabels: {app: cpu-demo}
+  template:
+    metadata:
+      labels: {app: cpu-demo}
+    spec:
+      nodeSelector: {managed-by: karpenter}
+      containers:
+        - name: stress
+          image: progrium/stress
+          args: ["--cpu", "1", "--timeout", "300s"]
+          resources:
+            requests:
+              cpu: 100m
+              memory: 64Mi
+            limits:
+              cpu: 200m
+              memory: 128Mi
+---
+apiVersion: keda.sh/v1alpha1
+kind: ScaledObject
+metadata:
+  name: cpu-demo
+spec:
+  scaleTargetRef:
+    name: cpu-demo
+  minReplicaCount: 1
+  maxReplicaCount: 10
+  pollingInterval: 15
+  cooldownPeriod: 60
+  triggers:
+    - type: cpu
+      metricType: Utilization
+      metadata:
+        value: "50"      # CPU 50% 이상이면 scale up

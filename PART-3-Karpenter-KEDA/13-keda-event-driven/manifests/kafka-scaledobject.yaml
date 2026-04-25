@@ -1,0 +1,20 @@
+apiVersion: keda.sh/v1alpha1
+kind: ScaledObject
+metadata:
+  name: notification-service
+  namespace: order
+spec:
+  scaleTargetRef:
+    name: notification-service
+  minReplicaCount: 0
+  maxReplicaCount: 3       # partition 수 (3) 이하로 제한
+  pollingInterval: 15
+  cooldownPeriod: 60
+  triggers:
+    - type: kafka
+      metadata:
+        bootstrapServers: my-cluster-kafka-bootstrap.kafka:9092
+        consumerGroup: notification-service
+        topic: notifications
+        lagThreshold: "10"
+        offsetResetPolicy: latest

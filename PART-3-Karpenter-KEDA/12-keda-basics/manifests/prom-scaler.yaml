@@ -1,0 +1,21 @@
+# Prometheus 트리거 — order-service 의 RPS 기반 스케일
+apiVersion: keda.sh/v1alpha1
+kind: ScaledObject
+metadata:
+  name: order-service-rps
+  namespace: order
+spec:
+  scaleTargetRef:
+    name: order-service
+  minReplicaCount: 1
+  maxReplicaCount: 20
+  pollingInterval: 15
+  cooldownPeriod: 60
+  triggers:
+    - type: prometheus
+      metadata:
+        serverAddress: http://kps-kube-prometheus-stack-prometheus.monitoring:9090
+        threshold: "10"
+        query: |
+          sum(rate(gin_request_duration_seconds_count{namespace="order",pod=~"order-service.*"}[1m]))
+        # 10 RPS 당 Pod 1 개

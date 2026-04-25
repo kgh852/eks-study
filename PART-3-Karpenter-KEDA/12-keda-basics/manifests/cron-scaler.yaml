@@ -1,0 +1,37 @@
+# Cron 트리거 + scale-to-zero 시연
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: cron-demo
+spec:
+  replicas: 0          # 처음엔 0
+  selector:
+    matchLabels: {app: cron-demo}
+  template:
+    metadata:
+      labels: {app: cron-demo}
+    spec:
+      nodeSelector: {managed-by: karpenter}
+      containers:
+        - name: app
+          image: nginx:1.27
+          resources:
+            requests: {cpu: 50m, memory: 64Mi}
+---
+apiVersion: keda.sh/v1alpha1
+kind: ScaledObject
+metadata:
+  name: cron-demo
+spec:
+  scaleTargetRef:
+    name: cron-demo
+  minReplicaCount: 0       # ← scale-to-zero
+  maxReplicaCount: 5
+  cooldownPeriod: 60
+  triggers:
+    - type: cron
+      metadata:
+        timezone: Asia/Seoul
+        start: "*/5 * * * *"      # 매 5분 마다 활성 시작
+        end: "1-59/5 * * * *"      # 1분 후 종료 (즉, 매 5분의 첫 1분만 활성)
+        desiredReplicas: "3"
