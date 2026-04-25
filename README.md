@@ -60,6 +60,13 @@
 - [ ] **17-cost-optimization** — Cost Explorer, Karpenter Spot 비율, 우상향 진단
 - [ ] **18-upgrade-strategy** — EKS/노드 그룹/addon 업그레이드 전략
 
+### Part 5: Observability 심화 (Prometheus + Grafana)
+- [ ] **19-prometheus-deep-dive** — 아키텍처, TSDB, ServiceMonitor, federation
+- [ ] **20-promql-mastery** — 4 메트릭 타입, RED/USE, recording rules
+- [ ] **21-custom-metrics-go** — scenarios Go 앱에 RED 메트릭 직접 추가
+- [ ] **22-grafana-advanced** — Variables, Provisioning, Grafana Alerting
+- [ ] **23-production-observability** — HA, Thanos/AMP, SLO, Alertmanager routing
+
 ---
 
 ## 학습 방법
@@ -108,6 +115,7 @@ eks-study/
 ├── PART-2-EKS-Practice/              # 모듈 05~09
 ├── PART-3-Karpenter-KEDA/            # 모듈 10~15
 ├── PART-4-Operations/                # 모듈 16~18
+├── PART-5-Observability-Advanced/    # 모듈 19~23 (Prometheus + Grafana 심화)
 ├── scenarios/                        # MSA 시나리오 앱 (Go)
 │   ├── order-service/                # REST API
 │   ├── payment-service/              # SQS Worker
@@ -134,15 +142,16 @@ eks-study/
 
 ## 커리큘럼 완성 상태
 
-본 커리큘럼은 18개 모듈 전체 (P0 기반 + P1 + P2 + P3 + P4) 가 작성되었습니다.
+본 커리큘럼은 23개 모듈 전체 (P0 기반 + P1 + P2 + P3 + P4 + P5) 가 작성되었습니다.
 
-| Part | 모듈 수 | 마크다운 라인 | 상태 |
-|------|---------|---------------|------|
-| P0 — 기반 | 1 (00-prerequisites) + scenarios + reference | ~3,500 | ✅ |
-| P1 — Kubernetes 기초 | 4 (01~04) | ~3,500 | ✅ |
-| P2 — EKS 실무 | 5 (05~09) | ~3,700 | ✅ |
-| P3 — Karpenter + KEDA | 6 (10~15) | ~4,000 | ✅ |
-| P4 — 운영 | 3 (16~18) | ~3,000 | ✅ |
-| **합계** | **18 모듈** | **~17,700 줄** | |
+| Part | 모듈 수 | 상태 |
+|------|---------|------|
+| P0 — 기반 | 1 (00-prerequisites) + scenarios + reference | ✅ |
+| P1 — Kubernetes 기초 | 4 (01~04) | ✅ |
+| P2 — EKS 실무 | 5 (05~09) | ✅ |
+| P3 — Karpenter + KEDA | 6 (10~15) | ✅ |
+| P4 — 운영 | 3 (16~18) | ✅ |
+| P5 — Observability 심화 | 5 (19~23) | ✅ |
+| **합계** | **23 모듈** | |
 
 학습은 위 진도 체크리스트의 모듈을 차례로 진행하시면 됩니다. 비용 가드레일 잊지 마세요.

@@ -1,0 +1,63 @@
+apiVersion: monitoring.coreos.com/v1
+kind: PrometheusRule
+metadata:
+  name: order-service-slo
+  namespace: monitoring
+  labels:
+    release: kps
+spec:
+  groups:
+    - name: order-service.slo.recording
+      interval: 30s
+      rules:
+        # SLI: 성공한 (2xx, 3xx) 요청 비율
+        - record: sli:order_service_availability:ratio_5m
+          expr: |
+            sum(rate(http_requests_total{service="order-service",code!~"5.."}[5m]))
+              /
+            sum(rate(http_requests_total{service="order-service"}[5m]))
+
+        - record: sli:order_service_availability:ratio_1h
+          expr: |
+            sum(rate(http_requests_total{service="order-service",code!~"5.."}[1h]))
+              /
+            sum(rate(http_requests_total{service="order-service"}[1h]))
+
+        - record: sli:order_service_availability:ratio_6h
+          expr: |
+            sum(rate(http_requests_total{service="order-service",code!~"5.."}[6h]))
+              /
+            sum(rate(http_requests_total{service="order-service"}[6h]))
+
+    - name: order-service.slo.alerts
+      rules:
+        # Multi-burn-rate (Google SRE Workbook)
+        # SLO: 99.9% over 30 days → error budget = 0.1%
+        # Fast burn — 1h 안에 budget 의 2% 소진 (= error rate > 14.4%)
+        - alert: OrderServiceSLOBurnRateFast
+          expr: |
+            (1 - sli:order_service_availability:ratio_5m) > (14.4 * 0.001)
+            and
+            (1 - sli:order_service_availability:ratio_1h) > (14.4 * 0.001)
+          for: 2m
+          labels:
+            severity: critical
+            slo: availability
+          annotations:
+            summary: "order-service: SLO budget 빠르게 소진 (1h burn 율 {{ $value | humanizePercentage }})"
+            description: "SLO 99.9% 위협 — 즉시 대응 필요"
+            runbook_url: "https://wiki.example.com/runbooks/slo-burn"
+
+        # Slow burn — 6h 안에 budget 의 5% 소진 (= error rate > 1%)
+        - alert: OrderServiceSLOBurnRateSlow
+          expr: |
+            (1 - sli:order_service_availability:ratio_1h) > (1 * 0.001)
+            and
+            (1 - sli:order_service_availability:ratio_6h) > (1 * 0.001)
+          for: 15m
+          labels:
+            severity: warning
+            slo: availability
+          annotations:
+            summary: "order-service: SLO budget 느린 소진 ({{ $value | humanizePercentage }})"
+            description: "SLO 99.9% 위협 가능 — 다음 영업일 내 대응"

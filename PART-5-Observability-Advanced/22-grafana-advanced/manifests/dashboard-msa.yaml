@@ -1,0 +1,82 @@
+# MSA RED 메트릭 대시보드 — kube-prometheus-stack 의 sidecar 가 자동 import
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: dashboard-msa-red
+  namespace: monitoring
+  labels:
+    grafana_dashboard: "1"           # ← sidecar 가 이 라벨 monitor
+data:
+  msa-red.json: |
+    {
+      "title": "MSA RED Dashboard",
+      "uid": "msa-red",
+      "tags": ["eks-study", "msa"],
+      "schemaVersion": 39,
+      "version": 1,
+      "time": {"from": "now-1h", "to": "now"},
+      "refresh": "30s",
+      "templating": {
+        "list": [
+          {
+            "name": "namespace",
+            "type": "query",
+            "datasource": "Prometheus",
+            "query": "label_values(http_requests_total, namespace)",
+            "current": {"text": "order", "value": "order"}
+          },
+          {
+            "name": "service",
+            "type": "query",
+            "datasource": "Prometheus",
+            "query": "label_values(http_requests_total{namespace=\"$namespace\"}, service)",
+            "multi": true,
+            "includeAll": true
+          }
+        ]
+      },
+      "panels": [
+        {
+          "id": 1,
+          "title": "RPS by service",
+          "type": "timeseries",
+          "gridPos": {"x":0,"y":0,"w":12,"h":8},
+          "targets": [{
+            "expr": "sum by (service) (rate(http_requests_total{namespace=\"$namespace\",service=~\"$service\"}[1m]))",
+            "legendFormat": "{{service}}"
+          }]
+        },
+        {
+          "id": 2,
+          "title": "Error rate by service (%)",
+          "type": "timeseries",
+          "gridPos": {"x":12,"y":0,"w":12,"h":8},
+          "fieldConfig": {"defaults": {"unit": "percentunit"}},
+          "targets": [{
+            "expr": "sum by (service) (rate(http_requests_total{namespace=\"$namespace\",service=~\"$service\",code=~\"5..\"}[1m])) / sum by (service) (rate(http_requests_total{namespace=\"$namespace\",service=~\"$service\"}[1m]))",
+            "legendFormat": "{{service}}"
+          }]
+        },
+        {
+          "id": 3,
+          "title": "p99 latency by service",
+          "type": "timeseries",
+          "gridPos": {"x":0,"y":8,"w":12,"h":8},
+          "fieldConfig": {"defaults": {"unit": "s"}},
+          "targets": [{
+            "expr": "histogram_quantile(0.99, sum by (le, service) (rate(http_request_duration_seconds_bucket{namespace=\"$namespace\",service=~\"$service\"}[5m])))",
+            "legendFormat": "{{service}}"
+          }]
+        },
+        {
+          "id": 4,
+          "title": "In-flight requests",
+          "type": "stat",
+          "gridPos": {"x":12,"y":8,"w":12,"h":8},
+          "targets": [{
+            "expr": "sum by (service) (http_requests_in_flight{namespace=\"$namespace\",service=~\"$service\"})",
+            "legendFormat": "{{service}}"
+          }]
+        }
+      ]
+    }

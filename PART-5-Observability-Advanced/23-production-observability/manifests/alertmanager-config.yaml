@@ -1,0 +1,58 @@
+apiVersion: monitoring.coreos.com/v1alpha1
+kind: AlertmanagerConfig
+metadata:
+  name: eks-study-routing
+  namespace: monitoring
+  labels:
+    alertmanagerConfig: kps      # Alertmanager spec 의 selector 와 매칭
+spec:
+  route:
+    groupBy: [alertname, namespace, service]
+    groupWait: 30s
+    groupInterval: 5m
+    repeatInterval: 4h
+    receiver: default-webhook
+    routes:
+      - matchers:
+          - {name: severity, value: critical}
+        receiver: pagerduty-critical
+        continue: true            # default 도 받음
+
+      - matchers:
+          - {name: team, value: platform}
+        receiver: platform-slack
+
+      - matchers:
+          - {name: alertname, value: Watchdog}
+        receiver: blackhole       # Watchdog 은 무시
+
+  inhibitRules:
+    - sourceMatch:
+        - {name: severity, value: critical}
+      targetMatch:
+        - {name: severity, value: warning}
+      equal: [namespace, service]
+
+  receivers:
+    - name: default-webhook
+      webhookConfigs:
+        - url: https://webhook.site/<your-test-id>
+          sendResolved: true
+
+    - name: pagerduty-critical
+      pagerdutyConfigs:
+        - routingKey:
+            name: pagerduty-key
+            key: integrationKey
+          severity: critical
+          sendResolved: true
+
+    - name: platform-slack
+      slackConfigs:
+        - apiURL:
+            name: slack-webhook
+            key: url
+          channel: '#platform-alerts'
+          sendResolved: true
+
+    - name: blackhole

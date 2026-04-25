@@ -1,0 +1,73 @@
+apiVersion: monitoring.coreos.com/v1
+kind: PrometheusRule
+metadata:
+  name: eks-study-recording
+  namespace: monitoring
+  labels:
+    release: kps
+spec:
+  groups:
+    - name: order-msa.recording
+      interval: 30s
+      rules:
+        # 서비스 별 RPS
+        - record: namespace:http_rps:sum
+          expr: |
+            sum by (namespace, service) (
+              rate(gin_request_duration_seconds_count[1m])
+            )
+
+        # 서비스 별 에러율
+        - record: namespace:http_error_rate:ratio
+          expr: |
+            sum by (namespace, service) (
+              rate(gin_request_duration_seconds_count{code=~"5.."}[1m])
+            )
+              /
+            sum by (namespace, service) (
+              rate(gin_request_duration_seconds_count[1m])
+            )
+
+        # p99 latency
+        - record: namespace:http_latency_p99:seconds
+          expr: |
+            histogram_quantile(0.99,
+              sum by (le, namespace, service) (
+                rate(gin_request_duration_seconds_bucket[5m])
+              )
+            )
+
+        # 컨테이너 CPU utilization (request 대비)
+        - record: pod:cpu_utilization:ratio
+          expr: |
+            sum by (namespace, pod) (rate(container_cpu_usage_seconds_total[1m]))
+              /
+            sum by (namespace, pod) (kube_pod_container_resource_requests{resource="cpu"})
+
+    - name: order-msa.alerts
+      rules:
+        - alert: HighErrorRate
+          expr: namespace:http_error_rate:ratio > 0.05
+          for: 5m
+          labels:
+            severity: warning
+          annotations:
+            summary: "{{ $labels.namespace }}/{{ $labels.service }} 에러율 {{ $value | humanizePercentage }}"
+            description: "5분 동안 5xx 비율이 5% 초과"
+
+        - alert: HighLatencyP99
+          expr: namespace:http_latency_p99:seconds > 1
+          for: 10m
+          labels:
+            severity: warning
+          annotations:
+            summary: "{{ $labels.service }} p99 > 1s ({{ $value }}s)"
+
+        - alert: OverProvisioned
+          expr: pod:cpu_utilization:ratio < 0.2
+          for: 1h
+          labels:
+            severity: info
+          annotations:
+            summary: "{{ $labels.namespace }}/{{ $labels.pod }} CPU 사용률 < 20% (1h)"
+            description: "리소스 right-sizing 필요"
