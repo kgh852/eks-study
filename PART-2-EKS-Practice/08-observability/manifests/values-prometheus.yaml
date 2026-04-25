@@ -1,0 +1,45 @@
+prometheus:
+  prometheusSpec:
+    retention: 1d              # 학습용 짧게
+    storageSpec:
+      volumeClaimTemplate:
+        spec:
+          storageClassName: gp3
+          accessModes: [ReadWriteOnce]
+          resources:
+            requests:
+              storage: 10Gi
+    resources:
+      requests:
+        cpu: 100m
+        memory: 512Mi
+      limits:
+        cpu: 1
+        memory: 2Gi
+
+grafana:
+  adminUser: admin
+  adminPassword: eks-study-admin
+  service:
+    type: ClusterIP            # port-forward 로 접근
+  persistence:
+    enabled: true
+    storageClassName: gp3
+    size: 5Gi
+  defaultDashboardsTimezone: Asia/Seoul
+
+alertmanager:
+  alertmanagerSpec:
+    storage:
+      volumeClaimTemplate:
+        spec:
+          storageClassName: gp3
+          accessModes: [ReadWriteOnce]
+          resources:
+            requests:
+              storage: 1Gi
+
+# kube-state-metrics 와 node-exporter 는 기본 활성
+
+defaultRules:
+  create: true                 # 기본 alert rule 자동 생성

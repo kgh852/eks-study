@@ -1,0 +1,55 @@
+apiVersion: eksctl.io/v1alpha5
+kind: ClusterConfig
+
+metadata:
+  name: eks-study
+  region: ap-northeast-2
+  version: "1.30"
+  tags:
+    Project: eks-study
+    Environment: learning
+
+iam:
+  withOIDC: true
+
+vpc:
+  cidr: 10.20.0.0/16
+  nat:
+    gateway: Single        # NAT Gateway 1개 (비용 절감 — 학습용)
+
+managedNodeGroups:
+  - name: workers
+    instanceTypes: [t3.medium, t3a.medium]
+    spot: true
+    desiredCapacity: 2
+    minSize: 0
+    maxSize: 6
+    volumeSize: 30
+    volumeType: gp3
+    privateNetworking: true
+    labels:
+      workload-type: general
+    iam:
+      withAddonPolicies:
+        ebs: true
+        cloudWatch: true
+        autoScaler: true
+        externalDNS: false
+        certManager: false
+
+addons:
+  - name: vpc-cni
+    version: latest
+  - name: coredns
+    version: latest
+  - name: kube-proxy
+    version: latest
+  - name: aws-ebs-csi-driver
+    version: latest
+    wellKnownPolicies:
+      ebsCSIController: true
+
+cloudWatch:
+  clusterLogging:
+    enableTypes: ["api", "audit", "authenticator", "controllerManager", "scheduler"]
+    logRetentionInDays: 7
